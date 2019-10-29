@@ -1,9 +1,9 @@
 // modules2.rs
 // Make me compile! Scroll down for hints :)
 
-mod delicious_snacks {
-    use self::fruits::PEAR as fruit;
-    use self::veggies::CUCUMBER as veggie;
+pub mod delicious_snacks {
+    pub use self::fruits::PEAR as fruit;
+    pub use self::veggies::CUCUMBER as veggie;
 
     mod fruits {
         pub const PEAR: &'static str = "Pear";
