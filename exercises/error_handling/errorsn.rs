@@ -18,26 +18,64 @@
 use std::error;
 use std::fmt;
 use std::io;
+use std::num;
+
+
+enum AnyError {
+    IoError(io::Error),
+    ParseError(num::ParseIntError),
+    ValidationError(CreationError),
+}
+
+
+impl From<io::Error> for AnyError {
+    fn from(error: io::Error) -> Self {
+        AnyError::IoError(error)
+    }
+}
+
+impl From<num::ParseIntError> for AnyError {
+    fn from(error: num::ParseIntError) -> Self {
+        AnyError::ParseError(error)
+    }
+}
+
+impl From<CreationError> for AnyError {
+    fn from(error: CreationError) -> Self {
+        AnyError::ValidationError(error)
+    }
+}
+
+impl ToString for AnyError {
+    fn to_string(&self) -> String {
+        match self {
+            AnyError::IoError(e) => e.to_string(),
+            AnyError::ParseError(e) => e.to_string(),
+            AnyError::ValidationError(e) => e.to_string()
+        }
+    }
+}
 
 // PositiveNonzeroInteger is a struct defined below the tests.
-fn read_and_validate(b: &mut io::BufRead) -> Result<PositiveNonzeroInteger, ???> {
+fn read_and_validate(b: &mut dyn io::BufRead) -> Result<PositiveNonzeroInteger, AnyError> {
     let mut line = String::new();
-    b.read_line(&mut line);
-    let num: i64 = line.trim().parse();
-    let answer = PositiveNonzeroInteger::new(num);
-    answer
+    b.read_line(&mut line)?;
+    let num: i64 = line.trim().parse()?;
+    let answer = PositiveNonzeroInteger::new(num)?;
+    Ok(answer)
 }
 
 // This is a test helper function that turns a &str into a BufReader.
-fn test_with_str(s: &str) -> Result<PositiveNonzeroInteger, Box<error::Error>> {
+fn test_with_str(s: &str) -> Result<PositiveNonzeroInteger, Box<AnyError>> {
     let mut b = io::BufReader::new(s.as_bytes());
-    read_and_validate(&mut b)
+
+    read_and_validate(&mut b).map_err(|e| Box::new(e))
 }
 
 #[test]
 fn test_success() {
     let x = test_with_str("42\n");
-    assert_eq!(PositiveNonzeroInteger(42), x.unwrap());
+    assert_eq!(PositiveNonzeroInteger(42), x.unwrap_or_else(|e| panic!("boom")));
 }
 
 #[test]
